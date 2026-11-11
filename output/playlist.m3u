@@ -1,3 +1,13 @@
 #EXTM3U
-#EXTINF:-1 tvg-name="Live live broadcast -- island channel",Live live broadcast -- island channel
-https://live-hls-web-aja-gcp.thehlive.com/VOICE-AJA/index.m3u8|Referer=https://www.aljazeera.net/video/live&User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+#EXTINF:-1 tvg-name="Trực Tiếp Đội Tuyển Quốc Gia Ấn Độ Vs Maldives Lúc 16_30 11-11-2026 Miễn Phí",Trực Tiếp Đội Tuyển Quốc Gia Ấn Độ Vs Maldives Lúc 16_30 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/33982309.m3u8?_t=1794395665031|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
+#EXTINF:-1 tvg-name="Trực Tiếp Vissel Kobe Vs Machida Lúc 17_00 11-11-2026 Miễn Phí",Trực Tiếp Vissel Kobe Vs Machida Lúc 17_00 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/33860426.m3u8?_t=1794395675739|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
+#EXTINF:-1 tvg-name="Trực Tiếp Kawasaki Frontale Vs Kashiwa Reysol Lúc 17_00 11-11-2026 Miễn Phí",Trực Tiếp Kawasaki Frontale Vs Kashiwa Reysol Lúc 17_00 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/99121525.m3u8?_t=1794395687741|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
+#EXTINF:-1 tvg-name="Trực Tiếp LG Sakers Vs Seoul Knights Lúc 17_00 11-11-2026 Miễn Phí",Trực Tiếp LG Sakers Vs Seoul Knights Lúc 17_00 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/82054853.m3u8?_t=1794395697265|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
+#EXTINF:-1 tvg-name="Trực Tiếp Đức U17 Vs Azerbaijan U17 Lúc 17_00 11-11-2026 Miễn Phí",Trực Tiếp Đức U17 Vs Azerbaijan U17 Lúc 17_00 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/49572724.m3u8?_t=1794395707843|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
+#EXTINF:-1 tvg-name="Trực Tiếp Urawa Reds Vs Cerezo Osaka Lúc 17_30 11-11-2026 Miễn Phí",Trực Tiếp Urawa Reds Vs Cerezo Osaka Lúc 17_30 11-11-2026 Miễn Phí
+https://live05.wecile.app/live/97885009.m3u8?_t=1794395709568|referer=https://socolive8.news/&user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36&range=bytes=0-
