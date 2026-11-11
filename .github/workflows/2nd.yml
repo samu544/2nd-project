@@ -59,10 +59,6 @@ jobs:
 
           git add -f output/playlist.m3u
 
-          if [ -f output/translation_cache.json ]; then
-            git add -f output/translation_cache.json
-          fi
-
           if ! git diff --cached --quiet; then
             git commit -m "chore: update playlist [skip ci]"
             git push origin HEAD:main
