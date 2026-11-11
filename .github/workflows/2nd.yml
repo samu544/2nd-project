@@ -1,0 +1,116 @@
+name: Crawl & Build Playlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+  push:
+    paths:
+      - ".github/workflows/crawl.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+        with:
+          path: main
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: main
+          path: private
+          sparse-checkout: |
+            Crawl
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: private/Crawl/requirements.txt
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r private/Crawl/requirements.txt
+
+      - name: Install Playwright
+        run: python -m playwright install --with-deps chromium
+
+      - name: Cache Argos packs
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/argos-translate/packages
+          key: argos-ar-en-v1
+
+      - name: Prepare Output
+        run: |
+          mkdir -p main/output
+          rm -rf private/Crawl/output
+          ln -s "$GITHUB_WORKSPACE/main/output" private/Crawl/output
+
+      - name: Cache translation
+        uses: actions/cache@v4
+        with:
+          path: main/output/translation_cache.json
+          key: trans-${{ github.run_id }}
+          restore-keys: trans-
+
+      - name: Run crawler
+        working-directory: private/Crawl
+        run: python app.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Show playlist
+        if: always()
+        run: |
+          echo "===== playlist ====="
+          cat main/output/playlist.m3u || echo "(none)"
+          echo "===================="
+
+      - name: Commit & Push Playlist
+        if: success()
+        working-directory: main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f output/playlist.m3u ]; then
+            git add -f output/playlist.m3u
+            git add -f output/translation_cache.json 2>/dev/null || true
+
+            if git diff --cached --quiet; then
+              echo "No changes - skip push"
+            else
+              git commit -m "chore: update playlist [skip ci]"
+              git push origin HEAD:main
+            fi
+          else
+            echo "Playlist file not found"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playlist-${{ github.run_number }}
+          path: main/output/playlist.m3u
+          retention-days: 30
+          if-no-files-found: warn
