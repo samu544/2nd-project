@@ -69,5 +69,5 @@ jobs:
           fi
         env:
           PYTHONUNBUFFERED: "1"
-          ENCODE: "true"
+          ENCODE: "false"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
