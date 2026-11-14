@@ -1,0 +1,73 @@
+
+name: Crawl & Build Playlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+  push:
+    paths:
+      - ".github/workflows/crawl.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: main
+          path: private
+          sparse-checkout: Crawl
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: private/Crawl/requirements.txt
+
+      - name: Install Dependencies
+        run: |
+          pip install -r private/Crawl/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Run & Push
+        working-directory: private/Crawl
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/main/output"
+          rm -rf output
+          ln -s "$GITHUB_WORKSPACE/main/output" output
+
+          python app.py
+
+          cd "$GITHUB_WORKSPACE/main"
+
+          printf '%s' "$PYTHON_SCRIPT" | ENCODE="$ENCODE" python -
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -f output/playlist.m3u
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update playlist [skip ci]"
+            git push origin HEAD:main
+          fi
+        env:
+          PYTHONUNBUFFERED: "1"
+          ENCODE: "true"
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
