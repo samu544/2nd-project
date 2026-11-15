@@ -3,10 +3,11 @@ name: Crawl & Build Playlist
 
 on:
   workflow_dispatch:
+
   schedule:
     - cron: "0 * * * *"
-    
-  permissions:
+
+permissions:
   contents: write
 
 concurrency:
@@ -104,14 +105,14 @@ jobs:
           set -e
 
           echo "Checking output files..."
-          
+
           test -f output/streampk.json
 
           python -m json.tool output/streampk.json > /dev/null
 
           echo "All output files validated."
 
-      # 8. Commit & Push
+      # 8. Commit & Push Output
       - name: Commit & Push Output
         working-directory: main
         run: |
