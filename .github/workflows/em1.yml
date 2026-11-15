@@ -108,9 +108,9 @@ jobs:
 
           echo "Checking output files..."
           
-          test -f output/streampk.json
+          test -f output2/streampk.json
 
-          python -m json.tool output/streampk.json > /dev/null
+          python -m json.tool output2/streampk.json > /dev/null
 
           echo "All output files validated."
 
