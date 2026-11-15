@@ -57,8 +57,8 @@ jobs:
 
           mkdir -p "$OUTPUT_DIR"
 
-          echo "Crawler output directory:"
-          echo "$OUTPUT_DIR"
+          echo "Starting crawler..."
+          echo "Output: $OUTPUT_DIR"
 
           python streamfree_full.py \
             -o "$OUTPUT_DIR"
@@ -66,14 +66,14 @@ jobs:
           echo "Crawler completed."
 
           echo "Generated files:"
-          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+          find "$OUTPUT_DIR" -type f -print
 
       # 5. Encode Output
       - name: Encode Output
         working-directory: main
         env:
           ENCODE: "true"
-          OUTPUT_DIR: ${{ github.workspace }}/main/output2
+          OUTPUT_DIR: "main/output2"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
           set -euo pipefail
@@ -83,24 +83,28 @@ jobs:
             exit 1
           fi
 
+          echo "Starting encoding..."
+
           echo "Workspace: $GITHUB_WORKSPACE"
           echo "Working directory: $(pwd)"
-          echo "Encode directory: $OUTPUT_DIR"
 
-          if [ ! -d "$OUTPUT_DIR" ]; then
+          echo "Output directory:"
+          echo "$GITHUB_WORKSPACE/$OUTPUT_DIR"
+
+          if [ ! -d "$GITHUB_WORKSPACE/$OUTPUT_DIR" ]; then
             echo "ERROR: Output directory does not exist."
             exit 1
           fi
 
           echo "Files before encoding:"
-          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+          find "$GITHUB_WORKSPACE/$OUTPUT_DIR" -type f -print
 
           printf '%s' "$PYTHON_SCRIPT" | python -
 
           echo "Encoding completed."
 
           echo "Files after encoding:"
-          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+          find "$GITHUB_WORKSPACE/$OUTPUT_DIR" -type f -print
 
       # 6. Commit & Push Output
       - name: Commit & Push Output
@@ -114,11 +118,13 @@ jobs:
           git add -f output2/
 
           if ! git diff --cached --quiet; then
+
             git commit -m "chore: update encoded playlist [skip ci]"
 
             git push origin HEAD:main
 
             echo "Push completed successfully."
+
           else
             echo "No changes detected. Skipping push."
           fi
