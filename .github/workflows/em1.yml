@@ -1,5 +1,5 @@
 
-name: Crawl & Build Playlist
+name: StreamFree Crawl & Push
 
 on:
   workflow_dispatch:
@@ -9,154 +9,43 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: crawl-build-playlist
-  cancel-in-progress: false
-
 jobs:
   crawl:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-
-      # 1. Checkout Main Repo
       - name: Checkout Main Repo
         uses: actions/checkout@v4
-        with:
-          ref: main
-          path: main
 
-      # 2. Checkout Private Repo
       - name: Checkout Private Repo
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.PRIVATE_REPO }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          ref: main
           path: private
-          sparse-checkout: |
-            emb
-          persist-credentials: false
 
-      # 3. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      # 4. Run Crawler
-      - name: Run Crawler
-        working-directory: private/emb
-        env:
-          PYTHONUNBUFFERED: "1"
+      - name: Run StreamFree
         run: |
-          set -euo pipefail
+          mkdir -p output2
+          python private/emb/streamfree_full.py \
+            -o "$GITHUB_WORKSPACE/output2/streampk.json"
 
-          OUTPUT_DIR="$GITHUB_WORKSPACE/main/output2"
-
-          mkdir -p "$OUTPUT_DIR"
-
-          echo "Starting crawler..."
-          echo "Output: $OUTPUT_DIR"
-
-          python streamfree_full.py \
-            -o "$OUTPUT_DIR"
-
-          # Move root-level output2.json into output2/
-          if [ -f "$GITHUB_WORKSPACE/main/output2.json" ]; then
-            mv "$GITHUB_WORKSPACE/main/output2.json" \
-               "$OUTPUT_DIR/output2.json"
-          fi
-
-          echo "Crawler completed."
-
-          echo "Generated files:"
-          find "$OUTPUT_DIR" -type f -print
-
-          FILE_COUNT=$(find "$OUTPUT_DIR" -type f | wc -l)
-
-          if [ "$FILE_COUNT" -eq 0 ]; then
-            echo "ERROR: Crawler generated no files."
-            exit 1
-          fi
-
-          echo "Total files: $FILE_COUNT"
-
-      # 5. Encode Output
-      - name: Encode Output
-        working-directory: main
-        env:
-          ENCODE: "true"
-          OUTPUT_DIR: "main/output2"
-          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
+      - name: Push to Main Repo
         run: |
-          set -euo pipefail
-
-          if [ -z "$PYTHON_SCRIPT" ]; then
-            echo "ERROR: Python script secret is empty."
-            exit 1
-          fi
-
-          OUTPUT_PATH="$GITHUB_WORKSPACE/main/output2"
-
-          echo "Starting encoding..."
-          echo "Workspace: $GITHUB_WORKSPACE"
-          echo "Output directory: $OUTPUT_PATH"
-
-          if [ ! -d "$OUTPUT_PATH" ]; then
-            echo "ERROR: Output directory does not exist."
-            exit 1
-          fi
-
-          echo "Files before encoding:"
-          find "$OUTPUT_PATH" -type f -printf '%p (%s bytes)\n'
-
-          FILE_COUNT=$(find "$OUTPUT_PATH" -type f | wc -l)
-
-          if [ "$FILE_COUNT" -eq 0 ]; then
-            echo "ERROR: No files found to encode."
-            exit 1
-          fi
-
-          echo "Found $FILE_COUNT files."
-
-          echo "Running Python encoder..."
-
-          printf '%s' "$PYTHON_SCRIPT" | python -
-
-          echo "Checking encoded files..."
-
-          AFTER_COUNT=$(find "$OUTPUT_PATH" -type f | wc -l)
-
-          if [ "$AFTER_COUNT" -ne "$FILE_COUNT" ]; then
-            echo "ERROR: File count changed after encoding."
-            exit 1
-          fi
-
-          find "$OUTPUT_PATH" -type f -printf '%p (%s bytes)\n'
-
-          echo "Encoding completed successfully."
-
-      # 6. Commit & Push Output
-      - name: Commit & Push Output
-        working-directory: main
-        run: |
-          set -euo pipefail
-
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f output2/
+          git add output2/streampk.json
 
-          if ! git diff --cached --quiet; then
-
-            git commit -m "chore: update encoded playlist [skip ci]"
-
-            git push origin HEAD:main
-
-            echo "Push completed successfully."
-
+          if git diff --cached --quiet; then
+            echo "No changes to push."
           else
-            echo "No changes detected. Skipping push."
+            git commit -m "Update StreamFree JSON"
+            git push
           fi
