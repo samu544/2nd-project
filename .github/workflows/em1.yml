@@ -88,7 +88,7 @@ jobs:
       - name: Run Custom Python Script
         working-directory: main
         env:
-          ENCODE: "false"
+          ENCODE: "true"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
           PYTHONUNBUFFERED: "1"
         run: |
