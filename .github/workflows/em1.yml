@@ -99,7 +99,7 @@ jobs:
         env:
           ENCODE: "true"
           OUTPUT_DIR: "main/output"
-          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
           PYTHONUNBUFFERED: "1"
         shell: bash
         run: |
