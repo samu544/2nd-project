@@ -1,4 +1,3 @@
-
 name: Crawl & Build Playlist
 
 on:
@@ -20,14 +19,14 @@ jobs:
 
     steps:
 
-      # 1. Checkout Main Repository
+      # 1. Checkout Main Repo
       - name: Checkout Main Repo
         uses: actions/checkout@v4
         with:
           ref: main
           path: main
 
-      # 2. Checkout Private Repository
+      # 2. Checkout Private Repo
       - name: Checkout Private Repo
         uses: actions/checkout@v4
         with:
@@ -45,8 +44,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 4. Run Main Crawler
-      - name: Run Main Crawler
+      # 4. Run Crawler
+      - name: Run Crawler
         working-directory: private/emb
         env:
           PYTHONUNBUFFERED: "1"
@@ -58,50 +57,18 @@ jobs:
           rm -rf output
           ln -s "$GITHUB_WORKSPACE/main/output" output
 
-          echo "Starting main crawler..."
+          echo "Starting crawler..."
 
           python streamfree_full.py
 
-      # 5. Build StreamFree JSON
-      - name: Build StreamFree JSON
-        working-directory: private/emb
-        env:
-          PYTHONUNBUFFERED: "1"
-        run: |
-          set -e
-
-          echo "Starting StreamFree JSON builder..."
-
-          python streamfree_full.py \
-            -o "$GITHUB_WORKSPACE/main/output/streampk.json"
-
-          echo "Validating original JSON..."
-
-          python -m json.tool \
-            "$GITHUB_WORKSPACE/main/output/streampk.json" > /dev/null
-
-          echo "Original JSON validated."
-
-      # 6. Validate Original Output
-      - name: Validate Original Output
-        working-directory: main
-        run: |
-          set -e
-
-          test -d output
-          test -n "$(find output -type f -print -quit)"
-
-          echo "Original output files found."
-
-      # 7. Encode Before Push
-      - name: Encode Output Before Push
+      # 5. Encode New Output Files Only
+      - name: Encode Output
         working-directory: main
         env:
           ENCODE: "true"
           OUTPUT_DIR: "main/output"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
           PYTHONUNBUFFERED: "1"
-        shell: bash
         run: |
           set -euo pipefail
 
@@ -112,54 +79,16 @@ jobs:
               exit 1
             fi
 
-            echo "Starting encoding..."
-
             printf '%s' "$PYTHON_SCRIPT" | \
               ENCODE="$ENCODE" \
               OUTPUT_DIR="$OUTPUT_DIR" \
               python -
 
-            echo "Encoding completed."
-
-          else
-            echo "Encoding disabled. Skipping."
           fi
 
-      # 8. Validate Encoded Output
-      - name: Validate Encoded Output
-        working-directory: main
-        env:
-          ENCODE: "false"
-        run: |
-          set -e
+          echo "Encoding completed."
 
-          test -d output
-
-          if [ "$ENCODE" = "true" ]; then
-            python - <<'PY'
-          import base64
-          from pathlib import Path
-
-          files = [
-              p for p in Path("output").rglob("*")
-              if p.is_file()
-          ]
-
-          if not files:
-              raise SystemExit("No output files found.")
-
-          for path in files:
-              data = path.read_bytes()
-              base64.b64decode(data, validate=True)
-              print(f"Validated: {path}")
-
-          print(f"Total validated: {len(files)}")
-          PY
-          else
-            echo "Encoding disabled."
-          fi
-
-      # 9. Commit & Push
+      # 6. Commit & Push
       - name: Commit & Push Output
         working-directory: main
         run: |
@@ -173,7 +102,6 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "chore: update encoded playlist [skip ci]"
             git push origin HEAD:main
-
             echo "Output successfully pushed."
           else
             echo "No changes to commit."
