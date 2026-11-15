@@ -47,8 +47,13 @@ jobs:
       # 4. Run Crawler
       - name: Run Crawler
         working-directory: private/emb
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
-          python streamfree_full.py
+          mkdir -p "$GITHUB_WORKSPACE/main/output2"
+
+          python streamfree_full.py \
+            -o "$GITHUB_WORKSPACE/main/output2"
 
       # 5. Encode Output
       - name: Encode Output
