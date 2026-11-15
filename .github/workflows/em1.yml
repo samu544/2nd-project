@@ -108,9 +108,9 @@ jobs:
 
           echo "Checking output files..."
           
-          test -f output2/streampk.json
+          test -f output/streampk.json
 
-          python -m json.tool output2/streampk.json > /dev/null
+          python -m json.tool output/streampk.json > /dev/null
 
           echo "All output files validated."
 
@@ -123,7 +123,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -f output2/streampk.json
+          git add -f output/streampk.json
 
           if ! git diff --cached --quiet; then
             git commit -m "chore: update playlist [skip ci]"
