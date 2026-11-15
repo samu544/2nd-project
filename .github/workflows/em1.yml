@@ -47,46 +47,28 @@ jobs:
       # 4. Run Crawler
       - name: Run Crawler
         working-directory: private/emb
-        env:
-          PYTHONUNBUFFERED: "1"
         run: |
-          set -e
-
-          mkdir -p "$GITHUB_WORKSPACE/main/output"
-
-          rm -rf output
-          ln -s "$GITHUB_WORKSPACE/main/output" output
-
-          echo "Starting crawler..."
-
           python streamfree_full.py
 
-      # 5. Encode New Output Files Only
+      # 5. Encode Output
       - name: Encode Output
         working-directory: main
         env:
           ENCODE: "true"
-          OUTPUT_DIR: "main/output"
+          OUTPUT_DIR: "output2"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
-          PYTHONUNBUFFERED: "1"
         run: |
           set -euo pipefail
 
-          if [ "$ENCODE" = "true" ]; then
-
-            if [ -z "$PYTHON_SCRIPT" ]; then
-              echo "ERROR: Python script secret is empty."
-              exit 1
-            fi
-
-            printf '%s' "$PYTHON_SCRIPT" | \
-              ENCODE="$ENCODE" \
-              OUTPUT_DIR="$OUTPUT_DIR" \
-              python -
-
+          if [ -z "$PYTHON_SCRIPT" ]; then
+            echo "ERROR: Python script secret is empty."
+            exit 1
           fi
 
-          echo "Encoding completed."
+          printf '%s' "$PYTHON_SCRIPT" | \
+            ENCODE="$ENCODE" \
+            OUTPUT_DIR="$OUTPUT_DIR" \
+            python -
 
       # 6. Commit & Push
       - name: Commit & Push Output
@@ -102,7 +84,4 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "chore: update encoded playlist [skip ci]"
             git push origin HEAD:main
-            echo "Output successfully pushed."
-          else
-            echo "No changes to commit."
           fi
