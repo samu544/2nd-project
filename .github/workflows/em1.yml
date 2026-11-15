@@ -5,11 +5,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
-  push:
-    paths:
-      - ".github/workflows/crawl.yml"
-
-permissions:
+    
+  permissions:
   contents: write
 
 concurrency:
