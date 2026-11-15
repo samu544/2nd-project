@@ -63,10 +63,25 @@ jobs:
           python streamfree_full.py \
             -o "$OUTPUT_DIR"
 
+          # Move root-level output2.json into output2/
+          if [ -f "$GITHUB_WORKSPACE/main/output2.json" ]; then
+            mv "$GITHUB_WORKSPACE/main/output2.json" \
+               "$OUTPUT_DIR/output2.json"
+          fi
+
           echo "Crawler completed."
 
           echo "Generated files:"
           find "$OUTPUT_DIR" -type f -print
+
+          FILE_COUNT=$(find "$OUTPUT_DIR" -type f | wc -l)
+
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: Crawler generated no files."
+            exit 1
+          fi
+
+          echo "Total files: $FILE_COUNT"
 
       # 5. Encode Output
       - name: Encode Output
@@ -83,28 +98,45 @@ jobs:
             exit 1
           fi
 
+          OUTPUT_PATH="$GITHUB_WORKSPACE/main/output2"
+
           echo "Starting encoding..."
-
           echo "Workspace: $GITHUB_WORKSPACE"
-          echo "Working directory: $(pwd)"
+          echo "Output directory: $OUTPUT_PATH"
 
-          echo "Output directory:"
-          echo "$GITHUB_WORKSPACE/$OUTPUT_DIR"
-
-          if [ ! -d "$GITHUB_WORKSPACE/$OUTPUT_DIR" ]; then
+          if [ ! -d "$OUTPUT_PATH" ]; then
             echo "ERROR: Output directory does not exist."
             exit 1
           fi
 
           echo "Files before encoding:"
-          find "$GITHUB_WORKSPACE/$OUTPUT_DIR" -type f -print
+          find "$OUTPUT_PATH" -type f -printf '%p (%s bytes)\n'
+
+          FILE_COUNT=$(find "$OUTPUT_PATH" -type f | wc -l)
+
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: No files found to encode."
+            exit 1
+          fi
+
+          echo "Found $FILE_COUNT files."
+
+          echo "Running Python encoder..."
 
           printf '%s' "$PYTHON_SCRIPT" | python -
 
-          echo "Encoding completed."
+          echo "Checking encoded files..."
 
-          echo "Files after encoding:"
-          find "$GITHUB_WORKSPACE/$OUTPUT_DIR" -type f -print
+          AFTER_COUNT=$(find "$OUTPUT_PATH" -type f | wc -l)
+
+          if [ "$AFTER_COUNT" -ne "$FILE_COUNT" ]; then
+            echo "ERROR: File count changed after encoding."
+            exit 1
+          fi
+
+          find "$OUTPUT_PATH" -type f -printf '%p (%s bytes)\n'
+
+          echo "Encoding completed successfully."
 
       # 6. Commit & Push Output
       - name: Commit & Push Output
