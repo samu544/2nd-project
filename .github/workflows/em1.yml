@@ -62,7 +62,7 @@ jobs:
 
           echo "Starting main crawler..."
 
-          python app.py
+          python streamfree_full.py
 
       # 5. Build StreamFree JSON
       - name: Build StreamFree JSON
