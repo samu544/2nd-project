@@ -1,3 +1,4 @@
+
 name: Crawl & Build Playlist
 
 on:
@@ -50,17 +51,29 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/main/output2"
+          set -euo pipefail
+
+          OUTPUT_DIR="$GITHUB_WORKSPACE/main/output2"
+
+          mkdir -p "$OUTPUT_DIR"
+
+          echo "Crawler output directory:"
+          echo "$OUTPUT_DIR"
 
           python streamfree_full.py \
-            -o "$GITHUB_WORKSPACE/main/output2"
+            -o "$OUTPUT_DIR"
+
+          echo "Crawler completed."
+
+          echo "Generated files:"
+          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
 
       # 5. Encode Output
       - name: Encode Output
         working-directory: main
         env:
           ENCODE: "true"
-          OUTPUT_DIR: "output2"
+          OUTPUT_DIR: ${{ github.workspace }}/main/output2
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
           set -euo pipefail
@@ -70,16 +83,30 @@ jobs:
             exit 1
           fi
 
-          printf '%s' "$PYTHON_SCRIPT" | \
-            ENCODE="$ENCODE" \
-            OUTPUT_DIR="$OUTPUT_DIR" \
-            python -
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Working directory: $(pwd)"
+          echo "Encode directory: $OUTPUT_DIR"
 
-      # 6. Commit & Push
+          if [ ! -d "$OUTPUT_DIR" ]; then
+            echo "ERROR: Output directory does not exist."
+            exit 1
+          fi
+
+          echo "Files before encoding:"
+          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+
+          printf '%s' "$PYTHON_SCRIPT" | python -
+
+          echo "Encoding completed."
+
+          echo "Files after encoding:"
+          find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+
+      # 6. Commit & Push Output
       - name: Commit & Push Output
         working-directory: main
         run: |
-          set -e
+          set -euo pipefail
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -88,5 +115,10 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "chore: update encoded playlist [skip ci]"
+
             git push origin HEAD:main
+
+            echo "Push completed successfully."
+          else
+            echo "No changes detected. Skipping push."
           fi
