@@ -1,5 +1,5 @@
 
-name: StreamFree Crawl & Push
+name: StreamFree Crawl & Encode
 
 on:
   workflow_dispatch:
@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Main Repo
         uses: actions/checkout@v4
+        with:
+          path: main
 
       - name: Checkout Private Repo
         uses: actions/checkout@v4
@@ -31,17 +33,26 @@ jobs:
           python-version: "3.12"
 
       - name: Run StreamFree
+        working-directory: main
         run: |
-          mkdir -p output2
-          python private/emb/streamfree_full.py \
-            -o "$GITHUB_WORKSPACE/output2/streampk.json"
+          python ../private/emb/streamfree_full.py
+
+      - name: Encode Output
+        working-directory: main
+        env:
+          ENCODE: "true"
+          OUTPUT_DIR: ${{ github.workspace }}/main/output2
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
+        run: |
+          python -c "$PYTHON_SCRIPT"
 
       - name: Push to Main Repo
+        working-directory: main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add output2/streampk.json
+          git add output2/
 
           if git diff --cached --quiet; then
             echo "No changes to push."
