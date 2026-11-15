@@ -3,7 +3,6 @@ name: Crawl & Build Playlist
 
 on:
   workflow_dispatch:
-
   schedule:
     - cron: "0 * * * *"
 
@@ -20,6 +19,7 @@ jobs:
     timeout-minutes: 60
 
     steps:
+
       # 1. Checkout Main Repository
       - name: Checkout Main Repo
         uses: actions/checkout@v4
@@ -75,44 +75,91 @@ jobs:
           python streamfree_full.py \
             -o "$GITHUB_WORKSPACE/main/output/streampk.json"
 
-          echo "Validating StreamFree JSON..."
+          echo "Validating original JSON..."
 
           python -m json.tool \
             "$GITHUB_WORKSPACE/main/output/streampk.json" > /dev/null
 
-          echo "StreamFree JSON validated successfully."
+          echo "Original JSON validated."
 
-      # 6. Run Custom Python Script
-      - name: Run Custom Python Script
+      # 6. Validate Original Output
+      - name: Validate Original Output
+        working-directory: main
+        run: |
+          set -e
+
+          test -d output
+          test -n "$(find output -type f -print -quit)"
+
+          echo "Original output files found."
+
+      # 7. Encode Before Push
+      - name: Encode Output Before Push
         working-directory: main
         env:
           ENCODE: "true"
+          OUTPUT_DIR: "main/output"
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
           PYTHONUNBUFFERED: "1"
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
-          if [ -n "$PYTHON_SCRIPT" ]; then
-            printf '%s' "$PYTHON_SCRIPT" | python -
+          if [ "$ENCODE" = "true" ]; then
+
+            if [ -z "$PYTHON_SCRIPT" ]; then
+              echo "ERROR: Python script secret is empty."
+              exit 1
+            fi
+
+            echo "Starting encoding..."
+
+            printf '%s' "$PYTHON_SCRIPT" | \
+              ENCODE="$ENCODE" \
+              OUTPUT_DIR="$OUTPUT_DIR" \
+              python -
+
+            echo "Encoding completed."
+
           else
-            echo "No custom Python script configured. Skipping."
+            echo "Encoding disabled. Skipping."
           fi
 
-      # 7. Validate Output
-      - name: Validate Output
+      # 8. Validate Encoded Output
+      - name: Validate Encoded Output
         working-directory: main
+        env:
+          ENCODE: "true"
         run: |
           set -e
 
-          echo "Checking output files..."
+          test -d output
 
-          test -f output/streampk.json
+          if [ "$ENCODE" = "true" ]; then
+            python - <<'PY'
+          import base64
+          from pathlib import Path
 
-          python -m json.tool output/streampk.json > /dev/null
+          files = [
+              p for p in Path("output").rglob("*")
+              if p.is_file()
+          ]
 
-          echo "All output files validated."
+          if not files:
+              raise SystemExit("No output files found.")
 
-      # 8. Commit & Push Output
+          for path in files:
+              data = path.read_bytes()
+              base64.b64decode(data, validate=True)
+              print(f"Validated: {path}")
+
+          print(f"Total validated: {len(files)}")
+          PY
+          else
+            echo "Encoding disabled."
+          fi
+
+      # 9. Commit & Push
       - name: Commit & Push Output
         working-directory: main
         run: |
@@ -121,12 +168,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -f output/streampk.json
+          git add -f output/
 
           if ! git diff --cached --quiet; then
-            git commit -m "chore: update playlist [skip ci]"
+            git commit -m "chore: update encoded playlist [skip ci]"
             git push origin HEAD:main
-            echo "Output successfully pushed to Main Repo."
+
+            echo "Output successfully pushed."
           else
             echo "No changes to commit."
           fi
