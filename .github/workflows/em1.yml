@@ -129,7 +129,7 @@ jobs:
       - name: Validate Encoded Output
         working-directory: main
         env:
-          ENCODE: "true"
+          ENCODE: "false"
         run: |
           set -e
 
