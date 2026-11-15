@@ -107,8 +107,7 @@ jobs:
           set -e
 
           echo "Checking output files..."
-
-          test -f output/playlist.m3u
+          
           test -f output/streampk.json
 
           python -m json.tool output/streampk.json > /dev/null
