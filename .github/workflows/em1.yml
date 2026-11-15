@@ -1,1 +1,135 @@
-h
+
+name: Crawl & Build Playlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+  push:
+    paths:
+      - ".github/workflows/crawl.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crawl-build-playlist
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # 1. Checkout Main Repository
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      # 2. Checkout Private Repository
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: main
+          path: private
+          sparse-checkout: |
+            emb
+          persist-credentials: false
+
+      # 3. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 4. Run Main Crawler
+      - name: Run Main Crawler
+        working-directory: private/emb
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -e
+
+          mkdir -p "$GITHUB_WORKSPACE/main/output"
+
+          rm -rf output
+          ln -s "$GITHUB_WORKSPACE/main/output" output
+
+          echo "Starting main crawler..."
+
+          python app.py
+
+      # 5. Build StreamFree JSON
+      - name: Build StreamFree JSON
+        working-directory: private/emb
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -e
+
+          echo "Starting StreamFree JSON builder..."
+
+          python streamfree_full.py \
+            -o "$GITHUB_WORKSPACE/main/output/streampk.json"
+
+          echo "Validating StreamFree JSON..."
+
+          python -m json.tool \
+            "$GITHUB_WORKSPACE/main/output/streampk.json" > /dev/null
+
+          echo "StreamFree JSON validated successfully."
+
+      # 6. Run Custom Python Script
+      - name: Run Custom Python Script
+        working-directory: main
+        env:
+          ENCODE: "false"
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ2 }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -e
+
+          if [ -n "$PYTHON_SCRIPT" ]; then
+            printf '%s' "$PYTHON_SCRIPT" | python -
+          else
+            echo "No custom Python script configured. Skipping."
+          fi
+
+      # 7. Validate Output
+      - name: Validate Output
+        working-directory: main
+        run: |
+          set -e
+
+          echo "Checking output files..."
+
+          test -f output/playlist.m3u
+          test -f output/streampk.json
+
+          python -m json.tool output/streampk.json > /dev/null
+
+          echo "All output files validated."
+
+      # 8. Commit & Push
+      - name: Commit & Push Output
+        working-directory: main
+        run: |
+          set -e
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -f output2/streampk.json
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update playlist [skip ci]"
+            git push origin HEAD:main
+            echo "Output successfully pushed to Main Repo."
+          else
+            echo "No changes to commit."
+          fi
