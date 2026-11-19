@@ -41,7 +41,7 @@ jobs:
         env:
           ENCODE: "true"
           OUTPUT_DIR: ${{ github.workspace }}/output2
-          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44-tvgu }}
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
           python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
 
