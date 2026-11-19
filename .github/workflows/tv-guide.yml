@@ -29,12 +29,15 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+          extensions: curl, dom, mbstring, json, libxml
 
       - name: Run tvguide
         run: |
           mkdir -p output2
-          python private/emb/tvguide.php \
-            -o "$GITHUB_WORKSPACE/output2/tvguide.json"
+          php private/emb/tvguide.php
+          cp private/emb/all.txt output2/tvguide.json
+          echo "--- output2/tvguide.json size ---"
+          ls -la output2/tvguide.json
 
       - name: Encode Output
         env:
