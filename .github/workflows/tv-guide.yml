@@ -1,0 +1,59 @@
+name: tvguide & Encode
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: private
+
+      # PHP setup
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Run tvguide
+        run: |
+          mkdir -p output2
+          python private/emb/tvguide.php \
+            -o "$GITHUB_WORKSPACE/output2/tvguide.json"
+
+      - name: Encode Output
+        env:
+          ENCODE: "true"
+          OUTPUT_DIR: ${{ github.workspace }}/output2
+          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
+        run: |
+          python -c "$PYTHON_SCRIPT"
+
+      - name: Push to Main Repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add output2/tvguide.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to push."
+          else
+            git commit -m "Update StreamFree JSON"
+            git push
+          fi
