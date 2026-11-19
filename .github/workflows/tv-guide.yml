@@ -34,10 +34,8 @@ jobs:
       - name: Run tvguide
         run: |
           mkdir -p output2
-          php private/emb/tvguide.php
+          php private/emb/tvguide.php > /dev/null 2>&1
           cp private/emb/all.txt output2/tvguide.json
-          echo "--- output2/tvguide.json size ---"
-          ls -la output2/tvguide.json
 
       - name: Encode Output
         env:
@@ -45,7 +43,7 @@ jobs:
           OUTPUT_DIR: ${{ github.workspace }}/output2
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
-          python -c "$PYTHON_SCRIPT"
+          python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
 
       - name: Push to Main Repo
         run: |
