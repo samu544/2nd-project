@@ -40,7 +40,7 @@ jobs:
       - name: Encode Output
         env:
           ENCODE: "true"
-          OUTPUT_DIR: ${{ github.workspace }}/output2
+          OUTPUT_DIR: ${{ github.workspace }}/sch
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
           python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
