@@ -16,30 +16,36 @@ jobs:
   crawl:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
         with:
           repository: ${{ secrets.PRIVATE_REPO }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
-      - uses: shivammathur/setup-php@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: curl, dom, mbstring, json, libxml
 
-      - name: Run PHP → JSON → merge
-        run: |
-          mkdir -p sch
-          for s in bna tvguide tsn; do
-            rm -f private/emb/all.txt
-            php private/emb/$s.php
-            test -s private/emb/all.txt || exit 1
-            cp private/emb/all.txt sch/$s.json
-          done
-          python -c "import json,pathlib;d=[];[d.extend(json.loads(p.read_text())) for p in pathlib.Path('sch').glob('*.json') if p.name!='all.json'];pathlib.Path('sch/all.json').write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')))"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Encode
+      - name: Run runner.py
+        env:
+          PRIVATE_PATH: ${{ github.workspace }}/private/sch
+          OUTPUT_DIR: ${{ github.workspace }}/sch
+        run: python private/sch/runner.py
+
+      - name: Encode Output
         env:
           OUTPUT_DIR: ${{ github.workspace }}/sch
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
@@ -47,10 +53,16 @@ jobs:
           printf '%s' "$PYTHON_SCRIPT" > /tmp/encode.py
           python /tmp/encode.py
 
-      - name: Push
+      - name: Push all.json
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add sch/all.json
-          git diff --cached --quiet || git commit -m "Update all.json"
-          git push || true
+
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update all.json"
+            git push
+          fi
