@@ -1,4 +1,5 @@
-name: tvguide & Encode
+
+name: TV Guide & Encode
 
 on:
   workflow_dispatch:
@@ -24,37 +25,43 @@ jobs:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
 
-      # PHP setup
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: curl, dom, mbstring, json, libxml
 
-      - name: Run tvguide
+      - name: Run All Scripts
         run: |
-          mkdir -p output2
-          php private/emb/tsn.php > /dev/null 2>&1
-          cp private/emb/all.txt sch/tsn.json
+          mkdir -p sch
 
-      - name: Encode Output
+          for file in private/sch/*.php; do
+            [ -f "$file" ] && php "$file"
+          done
+
+          for file in private/sch/*.py; do
+            [ -f "$file" ] && python "$file"
+          done
+
+      - name: Merge & Encode
         env:
           ENCODE: "true"
           OUTPUT_DIR: ${{ github.workspace }}/sch
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
-          python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
+          python -c "import json,glob; json.dump(sum([json.load(open(f)) for f in glob.glob('sch/*.json') if not f.endswith('all.json')],[]),open('sch/all.json','w'),ensure_ascii=False,separators=(',',':'))"
+          python -c "$PYTHON_SCRIPT"
 
-      - name: Push to Main Repo
+      - name: Push All JSON
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add sch/tsn.json
+          git add sch/all.json
 
-          if git diff --cached --quiet; then
-            echo "No changes to push."
-          else
-            git commit -m "Update StreamFree JSON"
+          if ! git diff --cached --quiet; then
+            git commit -m "Update All JSON"
             git push
+          else
+            echo "No changes to push."
           fi
