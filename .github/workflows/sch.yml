@@ -1,5 +1,4 @@
-
-name: TV Guide & Encode
+name: tvguide & Encode
 
 on:
   workflow_dispatch:
@@ -9,65 +8,49 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: tvguide-encode
+  cancel-in-progress: true
+
 jobs:
   crawl:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
-      # Main Repository
-      - name: Checkout Main Repo
-        uses: actions/checkout@v4
-
-      # Private Repository
-      - name: Checkout Private Repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: ${{ secrets.PRIVATE_REPO }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
-
-      # PHP Setup
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: curl, dom, mbstring, json, libxml
 
-      # Python Setup
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      # Run Private Runner
-      - name: Run Private Runner
-        env:
-          PRIVATE_PATH: private/sch
-          OUTPUT_DIR: ${{ github.workspace }}/sch
+      - name: Run PHP → JSON → merge
         run: |
-          python private/sch/runner.py
+          mkdir -p sch
+          for s in bna tvguide tsn; do
+            rm -f private/emb/all.txt
+            php private/emb/$s.php
+            test -s private/emb/all.txt || exit 1
+            cp private/emb/all.txt sch/$s.json
+          done
+          python -c "import json,pathlib;d=[];[d.extend(json.loads(p.read_text())) for p in pathlib.Path('sch').glob('*.json') if p.name!='all.json'];pathlib.Path('sch/all.json').write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')))"
 
-      # Encode JSON
-      - name: Encode Output
+      - name: Encode
         env:
-          ENCODE: "true"
           OUTPUT_DIR: ${{ github.workspace }}/sch
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
-          python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
+          printf '%s' "$PYTHON_SCRIPT" > /tmp/encode.py
+          python /tmp/encode.py
 
-      # Push only all.json to Main Repo
-      - name: Push All JSON to Main Repo
+      - name: Push
         run: |
-          git config user.name "github-actions[bot]"
+          git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add sch/all.json
-
-          if ! git diff --cached --quiet; then
-            git commit -m "Update All TV Guide JSON"
-            git push
-          else
-            echo "No changes to push."
-          fi
+          git diff --cached --quiet || git commit -m "Update all.json"
+          git push || true
