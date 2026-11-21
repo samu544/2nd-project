@@ -15,9 +15,11 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      # Main Repository
       - name: Checkout Main Repo
         uses: actions/checkout@v4
 
+      # Private Repository
       - name: Checkout Private Repo
         uses: actions/checkout@v4
         with:
@@ -25,34 +27,38 @@ jobs:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
 
+      # PHP Setup
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: curl, dom, mbstring, json, libxml
 
-      - name: Run All Scripts
+      # Python Setup
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Run Private Runner
+      - name: Run Private Runner
+        env:
+          PRIVATE_PATH: private/sch
+          OUTPUT_DIR: ${{ github.workspace }}/sch
         run: |
-          mkdir -p sch
+          python private/sch/runner.py
 
-          for file in private/sch/*.php; do
-            [ -f "$file" ] && php "$file"
-          done
-
-          for file in private/sch/*.py; do
-            [ -f "$file" ] && python "$file"
-          done
-
-      - name: Merge & Encode
+      # Encode JSON
+      - name: Encode Output
         env:
           ENCODE: "true"
           OUTPUT_DIR: ${{ github.workspace }}/sch
           PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
         run: |
-          python -c "import json,glob; json.dump(sum([json.load(open(f)) for f in glob.glob('sch/*.json') if not f.endswith('all.json')],[]),open('sch/all.json','w'),ensure_ascii=False,separators=(',',':'))"
-          python -c "$PYTHON_SCRIPT"
+          python -c "$PYTHON_SCRIPT" > /dev/null 2>&1
 
-      - name: Push All JSON
+      # Push only all.json to Main Repo
+      - name: Push All JSON to Main Repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -60,7 +66,7 @@ jobs:
           git add sch/all.json
 
           if ! git diff --cached --quiet; then
-            git commit -m "Update All JSON"
+            git commit -m "Update All TV Guide JSON"
             git push
           else
             echo "No changes to push."
