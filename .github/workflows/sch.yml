@@ -35,27 +35,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run PHP scripts
+      # যত .php আছে সব চালাও (নাম hardcode নেই)
+      - name: Run all PHP scripts
         run: |
           cd private/sch
-          php bna.php
-          php tsn.php
-          php tvguide.php
+          for f in *.php; do
+            echo "▶ Running $f"
+            php "$f" || { echo "❌ $f failed"; exit 1; }
+          done
+          echo "--- generated JSON ---"
           ls -la *.json
 
-      - name: Merge JSON
+      - name: Merge + Encode
         env:
           PRIVATE_PATH: ${{ github.workspace }}/private/sch
           OUTPUT_DIR: ${{ github.workspace }}/sch
         run: python private/sch/runner.py
-
-      - name: Encode
-        env:
-          OUTPUT_DIR: ${{ github.workspace }}/sch
-          PYTHON_SCRIPT: ${{ secrets.x7Kp9mQ44 }}
-        run: |
-          printf '%s' "$PYTHON_SCRIPT" > /tmp/encode.py
-          python /tmp/encode.py
 
       - name: Push all.json
         run: |
