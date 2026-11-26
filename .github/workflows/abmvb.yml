@@ -1,0 +1,72 @@
+
+name: Fetch & XOR Encode
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-date
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: GET, XOR & Base64
+        env:
+          API_URL: ${{ secrets.URL }}
+          XOR_KEY: ${{ secrets.KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import requests
+          import base64
+
+          url = os.environ["API_URL"]
+          key = os.environ["XOR_KEY"].encode()
+
+          if not url or not key:
+              raise SystemExit("Missing URL or KEY secret")
+
+          response = requests.get(url, timeout=60)
+          response.raise_for_status()
+
+          data = response.content
+
+          # XOR encryption
+          encrypted = bytes(
+              b ^ key[i % len(key)]
+              for i, b in enumerate(data)
+          )
+
+          # Base64 encoding
+          encoded = base64.b64encode(encrypted)
+
+          with open("date.txt", "wb") as f:
+              f.write(encoded)
+
+          print("date.txt created successfully")
+          PY
+
+      - name: Push date.txt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add date.txt
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update date.txt"
+            git push
+          else
+            echo "No changes to push"
+          fi
