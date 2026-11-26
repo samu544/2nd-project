@@ -1,0 +1,68 @@
+
+name: tvguide & Encode
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tvguide-encode
+  cancel-in-progress: true
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: private
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: curl, dom, mbstring, json, libxml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install requests pycryptodome
+
+      - name: Run all PHP scripts
+        run: |
+          cd private/sch
+          for f in *.php; do
+            echo "Running $f"
+            php "$f" > /dev/null 2>&1 || { echo "Failed: $f"; exit 1; }
+          done
+          ls -la *.json
+
+      - name: Run new-sch.py
+        run: |
+          python private/sch/new-sch.py
+
+      - name: Merge and encode
+        env:
+          PRIVATE_PATH: ${{ github.workspace }}/private/sch
+          OUTPUT_DIR: ${{ github.workspace }}/sch
+        run: python private/sch/runner.py
+
+      - name: Push all.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sch/all.json
+          git diff --cached --quiet || git commit -m "Update all.json"
+          git push || true
